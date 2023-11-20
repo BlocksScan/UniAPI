@@ -13,11 +13,10 @@ contract XRC721 is ERC721 {
         public
         returns (uint256)
     {
-
-        uint256 newItemId = _tokenIdCounter;
-        _safeMint(tokenOwner, newItemId);
+        uint256 tokenId = _tokenIdCounter;
+        _safeMint(tokenOwner, tokenId);
         _tokenIdCounter += 1;
 
-        return newItemId;
+        return tokenId;
     }
 }
