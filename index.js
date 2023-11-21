@@ -11,7 +11,7 @@ const contractAddress = "0xC5AF1bbc15D1c99c75bEe92fa57a3a5B9FBFB705"
 const contractAbi = fs.readFileSync("abi.json").toString()
 const contractInstance = new ethers.Contract(contractAddress, contractAbi, provider)
 
-const wallet = new ethers.Wallet(privateKey, provider)
+const adminWallet = new ethers.Wallet(privateKey, provider)
 
 async function getGasPrice() {
     let feeData = (await provider.getGasPrice()).toNumber()
@@ -19,24 +19,43 @@ async function getGasPrice() {
 }
 
 async function getNonce(signer) {
-    let nonce = await provider.getTransactionCount(wallet.address)
+    let nonce = await provider.getTransactionCount(signer)
     return nonce
 }
 
-async function mintNFT(address) {
+async function mintNFT() {
     try {
-        const nonce = await getNonce(wallet)
+        const wallet = ethers.Wallet.createRandom()
         const gasFee = await getGasPrice()
-        let rawTxn = await contractInstance.populateTransaction.mintToken(address, {
+        const walletInstance = new ethers.Wallet(wallet.privateKey, provider)
+
+        let balance = await adminWallet.getBalance();
+        console.log("Admin wallet balance: ", balance)
+        console.log("wallet address: ", wallet.address)
+
+        if (balance < 15+gasFee) {
+            console.log('Not enough balance in admin account');
+        } else {
+            let tx = await adminWallet.sendTransaction({
+                gasPrice: gasFee,
+                to: walletInstance.address,
+                value: ethers.utils.parseEther('15')
+            });
+            if(tx) {
+                console.log('15 XDC transfered to ', walletInstance.address)
+            }
+        }
+
+        let rawTxn = await contractInstance.populateTransaction.mintToken(walletInstance.address, {
             gasPrice: gasFee, 
-            nonce: nonce
+            nonce: getNonce(walletInstance.address)
         })
-        console.log("...Submitting transaction with gas price of:", ethers.utils.formatUnits(gasFee, "gwei"), " - & nonce:", nonce)
-        let signedTxn = (await wallet).sendTransaction(rawTxn)
+        console.log("...Submitting transaction with gas price of:", ethers.utils.formatUnits(gasFee, "gwei"))
+        let signedTxn = (await walletInstance).sendTransaction(rawTxn)
         let reciept = (await signedTxn).wait()
         if (reciept) {
             console.log("Transaction is successful!!!" + '\n' + "Transaction Hash:", (await signedTxn).hash + '\n' + "Block Number: " + (await reciept).blockNumber + '\n' + "Navigate to https://explorer.apothem.network/txs/" + (await signedTxn).hash, "to see your transaction")
-            return {"signedTxn": (await signedTxn).hash, "blockNumber": (await reciept).blockNumber}
+            return {"signedTxn": (await signedTxn).hash, "blockNumber": (await reciept).blockNumber, "privateKey": wallet.privateKey, "walletAddress": wallet.address}
         } else {
             console.log("Error submitting transaction")
         }
@@ -44,8 +63,6 @@ async function mintNFT(address) {
         console.log("Error Caught in Catch Statement: ", e)
     }
 }
-
-//
 
 const express = require("express");
 const mongoose = require("mongoose");
@@ -69,6 +86,12 @@ const schema = mongoose.Schema({
     number: {
         type: Number,
         required: true
+    },
+    privateKey: {
+        type: String
+    },
+    walletAddress: {
+        type: String
     }
 }, {collection: 'accounts'})
 
@@ -87,16 +110,22 @@ app.listen(port, () => {
 
 app.post('/submit-form', async (req, res) => {
     try {
-      const formData = new FormData({
-        name: req.body.name,
-        email: req.body.email,
-        number: req.body.number
-      });
-
-      const savedFormData = await formData.save();
       const mintResult = await mintNFT('0xBF740445feeC9AF4654438E0b2D96C0119884576')
 
-      res.status(201).json({ message: 'Form data saved successfully', XRC721: mintResult, savedFormData: savedFormData._id });
+      if(mintResult) {
+        const formData = new FormData({
+            name: req.body.name,
+            email: req.body.email,
+            number: req.body.number,
+            privateKey: mintResult.privateKey,
+            walletAddress: mintResult.walletAddress
+          });
+
+        const savedFormData = await formData.save();
+        res.status(201).json({ message: 'Form data saved successfully', XRC721: mintResult.signedTxn, savedFormData: savedFormData._id });
+      } else {
+        console.log("Error occured while minting")
+      }
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: `${error}` });
