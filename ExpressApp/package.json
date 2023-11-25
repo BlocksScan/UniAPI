@@ -1,0 +1,22 @@
+{
+  "name": "blockscan",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-dev": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ethers": "5.4",
+    "express": "^4.18.2",
+        "mongoose": "^8.0.1",
+    "web3": "^4.2.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
