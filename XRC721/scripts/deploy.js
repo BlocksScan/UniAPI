@@ -9,7 +9,7 @@ async function main() {
   console.log("Token Successfully Deployed!");
   console.log("Token address:", myNFT.target);
 
-  const newItemId = await myNFT.mintToken(deployer.address, { gasLimit: "0x1000000"})
+  const newItemId = await myNFT.mintToken(deployer.address, 'https://app.xdcdomains.xyz/api/nftdomains/metadata/silis.xdc', { gasLimit: "0x1000000"})
 
   console.log("NFT minted: ", newItemId)
 }

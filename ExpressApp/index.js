@@ -7,7 +7,7 @@ const privateKey = fs.readFileSync(".secret").toString().trim()
 const QUICKNODE_HTTP_ENDPOINT = "https://erpc.apothem.network"
 const provider = new ethers.providers.JsonRpcProvider(QUICKNODE_HTTP_ENDPOINT);
 
-const contractAddress = "0xC5AF1bbc15D1c99c75bEe92fa57a3a5B9FBFB705"
+const contractAddress = "0xc45Ce3e3ECA5c61a7168924C07F6B4DF90D749Ff"
 const contractAbi = fs.readFileSync("abi.json").toString()
 const contractInstance = new ethers.Contract(contractAddress, contractAbi, provider)
 
@@ -23,7 +23,7 @@ async function getNonce(signer) {
     return nonce
 }
 
-async function mintNFT() {
+async function mintNFT(ipfsUri) {
     try {
         const wallet = ethers.Wallet.createRandom()
         const gasFee = await getGasPrice()
@@ -46,7 +46,7 @@ async function mintNFT() {
             }
         }
 
-        let rawTxn = await contractInstance.populateTransaction.mintToken(walletInstance.address, {
+        let rawTxn = await contractInstance.populateTransaction.mintToken(walletInstance.address, ipfsUri, {
             gasPrice: gasFee, 
             nonce: getNonce(walletInstance.address)
         })
@@ -110,7 +110,7 @@ app.listen(port, () => {
 
 app.post('/submit-form', async (req, res) => {
     try {
-      const mintResult = await mintNFT('0xBF740445feeC9AF4654438E0b2D96C0119884576')
+      const mintResult = await mintNFT('https://app.xdcdomains.xyz/api/nftdomains/metadata/silis.xdc')
 
       if(mintResult) {
         const formData = new FormData({
